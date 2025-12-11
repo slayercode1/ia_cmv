@@ -1,4 +1,5 @@
 from typing import Union
+from pathlib import Path
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -6,8 +7,12 @@ import pickle
 
 app = FastAPI()
 
+# Chemin du modèle qui fonctionne en local et dans Docker
+model_path = Path(__file__).parent / 'model_multiple2.pkl'
+if not model_path.exists():
+    model_path = Path(__file__).parent.parent / 'notebook' / 'model_multiple2.pkl'
 
-with open('model_multiple2.pkl', 'rb') as f:
+with open(model_path, 'rb') as f:
     model_data = pickle.load(f)
 
 model = model_data['model']

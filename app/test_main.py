@@ -1,9 +1,3 @@
-import sys
-from pathlib import Path
-
-# Ajouter le répertoire parent au PYTHONPATH
-sys.path.insert(0, str(Path(__file__).parent))
-
 from fastapi.testclient import TestClient
 from main import app
 

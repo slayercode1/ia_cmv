@@ -11,8 +11,8 @@ COPY ./requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
 # Copier le code de l'application et le modèle
-COPY main.py .
-COPY model_multiple2.pkl .
+COPY ./app/main.py .
+COPY ./notebook/model_multiple2.pkl .
 
 # Exposer le port 8000
 EXPOSE 8000
