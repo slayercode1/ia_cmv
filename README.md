@@ -28,7 +28,7 @@ Le modèle utilise un algorithme de régression linéaire multiple (scikit-learn
 1. Cloner le projet
 
 ```bash
-git clone <url-du-repo>
+git clone https://github.com/slayercode1/ia_cmv
 cd ia_cmv
 ```
 
