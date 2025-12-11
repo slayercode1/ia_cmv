@@ -1,0 +1,40 @@
+[
+  {
+
+    "km_actuel": 162000,
+    "km_moyen_annuel": 18000,
+    "km_derniere_revision": 150000,
+    "jours_depuis_derniere_revision": 300,
+    "km_depuis_derniere_revision": 12000,
+    "nb_revisions_effectuees": 14,
+    "intervalle_recommande_jours": 300,
+    "intervalle_recommande_km": 12000,
+    "condition_vehicule": 6,
+    "nb_pannes_historique": 3,
+    "age_vehicule": 10,
+    "taux_utilisation_km": 1.3,
+    "taux_utilisation_jours": 0.8,
+    "revisions_par_an": 1.4,
+    "Carburant_Factor": 0.9,
+    "Usage_Factor": 1.3
+  } ,
+  {
+    "km_actuel": 100000,
+    "km_moyen_annuel": 15000,
+    "km_derniere_revision": 95000,
+    "jours_depuis_derniere_revision": 150,
+    "km_depuis_derniere_revision": 5000,
+    "nb_revisions_effectuees": 10,
+    "intervalle_recommande_jours": 365,
+    "intervalle_recommande_km": 10000,
+    "condition_vehicule": 8,
+    "nb_pannes_historique": 1,
+    "age_vehicule": 7,
+    "taux_utilisation_km": 1.2,
+    "taux_utilisation_jours": 1.0,
+    "revisions_par_an": 1.5,
+    "Carburant_Factor": 1.0,
+    "Usage_Factor": 1.2
+  }
+]
+
