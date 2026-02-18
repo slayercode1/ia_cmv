@@ -1,7 +1,25 @@
+# === Dépendances de production ===
+# Framework web pour créer l'API
 fastapi==0.124.2
+# Serveur ASGI pour lancer FastAPI
 uvicorn[standard]==0.38.0
+# Validation des données d'entrée (utilisé par FastAPI)
 pydantic==2.10.6
+# Preprocessing des données (StandardScaler)
 scikit-learn==1.6.1
+# Calculs numériques (tableaux, matrices)
 numpy==2.3.5
+# Algorithme de machine learning utilisé pour la prédiction
 xgboost==3.1.2
+# Tracking et chargement des modèles depuis MLflow Model Registry
+mlflow==2.21.3
+
+# === Dépendances de développement ===
+# Manipulation de données (tableaux, CSV)
+pandas==2.2.3
+# Création de graphiques
+matplotlib==3.10.0
+# Graphiques statistiques
+seaborn==0.13.2
+# Framework de tests (pas nécessaire en production)
 pytest==9.0.2

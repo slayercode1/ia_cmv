@@ -71,6 +71,11 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# MLflow (tracking local)
+mlruns/
+mlartifacts/
+feature_importance.csv
+
 # Machine Learning specific
 *.pkl
 *.h5

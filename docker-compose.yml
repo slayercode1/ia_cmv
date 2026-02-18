@@ -1,0 +1,40 @@
+services:
+  # --- Serveur MLflow ---
+  # Interface web : http://localhost:5000
+  # Stocke les expérimentations, métriques et modèles
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    container_name: mlflow-server
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # --- API FastAPI ---
+  # Documentation : http://localhost:8000/docs
+  # Charge le modèle depuis MLflow Model Registry
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-maintenance
+    ports:
+      - "8000:8000"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MODEL_NAME=maintenance_vehicules
+      - MODEL_ALIAS=champion
+    depends_on:
+      mlflow:
+        condition: service_healthy
+
+volumes:
+  mlflow_data:

@@ -1,217 +1,287 @@
-# API de Prédiction de Maintenance de Véhicules
+# API de Prediction de Maintenance de Vehicules
 
-API FastAPI utilisant un modèle de Machine Learning pour prédire le moment optimal pour la prochaine maintenance d'un véhicule.
+API FastAPI utilisant un modele XGBoost pour predire le moment optimal pour la prochaine maintenance d'un vehicule.
 
 ## Description
 
-Cette API permet de prédire le nombre de jours restants avant la prochaine maintenance recommandée d'un véhicule en fonction de multiples paramètres (kilométrage, historique des révisions, condition du véhicule, etc.).
+Cette API predit le nombre de jours restants avant la prochaine maintenance recommandee d'un vehicule en fonction de 16 parametres (kilometrage, historique des revisions, condition du vehicule, etc.).
 
-Le modèle utilise un algorithme de régression linéaire multiple (scikit-learn) entraîné sur un dataset de 5000 véhicules avec leurs historiques de maintenance.
+Le modele utilise un **Pipeline** scikit-learn (StandardScaler + XGBoost) optimise avec **GridSearchCV**, entraine sur un dataset de 5000 vehicules. Il est versionne et servi via **MLflow Model Registry**.
 
-## Fonctionnalités
+## Fonctionnalites
 
-- Prédiction du nombre de jours avant la prochaine maintenance
+- Prediction du nombre de jours avant la prochaine maintenance
 - Calcul d'une fourchette de confiance (intervalle min/max)
-- Recommandations personnalisées basées sur l'urgence
-- API REST simple et documentée automatiquement (Swagger UI)
+- Recommandations personnalisees basees sur l'urgence
+- API REST documentee automatiquement (Swagger UI / ReDoc)
+- Versioning du modele via MLflow Model Registry
+- Rechargement du modele a chaud (`POST /reload-model`)
 
-## Prérequis
+## Prerequis
 
 - Python 3.12
-- pip
-- Docker (optionnel)
+- Docker et Docker Compose
 
-## Installation
+## Lancement avec Docker Compose (recommande)
 
-### Installation locale
-
-1. Cloner le projet
+Docker Compose demarre deux services : le serveur **MLflow** (tracking + registry) et l'**API FastAPI**.
 
 ```bash
-git clone https://github.com/slayercode1/ia_cmv
-cd ia_cmv
+docker compose up --build -d
 ```
 
-2. Créer un environnement virtuel
+| Service | URL | Description |
+| ------- | --- | ----------- |
+| API     | http://localhost:8000 | API de prediction |
+| Swagger | http://localhost:8000/docs | Documentation interactive |
+| ReDoc   | http://localhost:8000/redoc | Documentation alternative |
+| MLflow  | http://localhost:5000 | UI MLflow (experiments, registry) |
+
+### Entrainer le modele et l'enregistrer dans MLflow
+
+1. S'assurer que le serveur MLflow tourne (`docker compose up -d mlflow`)
+2. Ouvrir le notebook `notebook/Regression_Lineaire.ipynb` avec Jupyter
+3. Executer toutes les cellules : le modele est automatiquement enregistre dans MLflow avec l'alias `champion`
+4. Recharger le modele dans l'API :
+
+```bash
+curl -X POST http://localhost:8000/reload-model
+```
+
+### Arreter les services
+
+```bash
+docker compose down       # Garde les donnees MLflow
+docker compose down -v    # Supprime aussi le volume MLflow
+```
+
+## Installation locale (developpement)
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # Sur Windows: .venv\Scripts\activate
-```
-
-3. Installer les dépendances
-
-```bash
 pip install -r requirements.txt
-```
-
-### Installation avec Docker
-
-```bash
-docker build -t ia-cmv-api .
-docker run -p 8000:8000 ia-cmv-api
-```
-
-## Utilisation
-
-### Entraîner le modèle (optionnel)
-
-Si vous souhaitez ré-entraîner le modèle ou expérimenter avec le dataset:
-
-1. Ouvrez le notebook [Regression_Lineaire.ipynb](Regression_Lineaire.ipynb) dans Google Colab
-2. Uploadez le fichier [dataset_vehicules_5000.csv](dataset_vehicules_5000.csv) dans l'environnement Colab
-3. Exécutez toutes les cellules du notebook
-4. Téléchargez le nouveau fichier `model_multiple2.pkl` généré
-5. Remplacez le modèle dans le projet
-
-### Lancer l'API
-
-**En local:**
-
-```bash
+cd app
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-**Avec Docker:**
+L'API necessite un serveur MLflow avec un modele enregistre pour fonctionner. Sans modele, l'endpoint `/predict` retourne une erreur 503.
 
-```bash
-docker run -p 8000:8000 ia-cmv-api
-```
+## Utilisation de l'API
 
-### Accéder à la documentation
+### Exemple de requete
 
-Une fois l'API lancée, accédez à:
-
-- Documentation Swagger UI: <http://localhost:8000/docs>
-- Documentation ReDoc: <http://localhost:8000/redoc>
-
-### Exemple de requête
-
-**Endpoint:** `POST /predict`
-
-**Corps de la requête (JSON):**
-
-```json
-{
-  "km_actuel": 45000,
-  "km_moyen_annuel": 15000,
-  "km_derniere_revision": 42000,
-  "jours_depuis_derniere_revision": 90,
-  "km_depuis_derniere_revision": 3000,
-  "nb_revisions_effectuees": 3,
-  "intervalle_recommande_jours": 365,
-  "intervalle_recommande_km": 15000,
-  "condition_vehicule": 8,
-  "nb_pannes_historique": 1,
-  "age_vehicule": 3,
-  "taux_utilisation_km": 0.2,
-  "taux_utilisation_jours": 0.25,
-  "revisions_par_an": 1.0,
-  "Carburant_Factor": 1.2,
-  "Usage_Factor": 0.8
-}
-```
-
-**Exemple avec curl:**
+**Endpoint :** `POST /predict`
 
 ```bash
 curl -X POST "http://localhost:8000/predict" \
   -H "Content-Type: application/json" \
-  -d @data_test.json
+  -d '{
+    "km_actuel": 100000,
+    "km_moyen_annuel": 15000,
+    "km_derniere_revision": 95000,
+    "jours_depuis_derniere_revision": 150,
+    "km_depuis_derniere_revision": 5000,
+    "nb_revisions_effectuees": 10,
+    "intervalle_recommande_jours": 365,
+    "intervalle_recommande_km": 10000,
+    "condition_vehicule": 8,
+    "nb_pannes_historique": 1,
+    "age_vehicule": 7,
+    "taux_utilisation_km": 1.2,
+    "taux_utilisation_jours": 1.0,
+    "revisions_par_an": 1.5,
+    "Carburant_Factor": 1.0,
+    "Usage_Factor": 1.2
+  }'
 ```
 
-**Réponse:**
+**Reponse :**
 
 ```json
 {
-  "estimation_jours": 180,
-  "estimation_mois": 6.0,
-  "fourchette_min_mois": 5.0,
-  "fourchette_max_mois": 7.0,
-  "recommandation": "Planifier la maintenance dans 5 à 9 mois"
+  "estimation_jours": 157,
+  "estimation_mois": 5.2,
+  "fourchette_min_mois": 4.3,
+  "fourchette_max_mois": 6.2,
+  "recommandation": "Planifier la maintenance dans 5 a 9 mois"
 }
 ```
 
-## Paramètres d'entrée
+## Parametres d'entree
 
-| Paramètre                        | Type  | Description                                        |
+| Parametre                        | Type  | Description                                        |
 | -------------------------------- | ----- | -------------------------------------------------- |
-| `km_actuel`                      | float | Kilométrage actuel du véhicule                     |
-| `km_moyen_annuel`                | float | Kilométrage moyen annuel                           |
-| `km_derniere_revision`           | float | Kilométrage lors de la dernière révision           |
-| `jours_depuis_derniere_revision` | int   | Nombre de jours depuis la dernière révision        |
-| `km_depuis_derniere_revision`    | float | Kilométres parcourus depuis la dernière révision   |
-| `nb_revisions_effectuees`        | int   | Nombre total de révisions effectuées               |
-| `intervalle_recommande_jours`    | int   | Intervalle recommandé en jours par le constructeur |
-| `intervalle_recommande_km`       | float | Intervalle recommandé en km par le constructeur    |
-| `condition_vehicule`             | int   | État du véhicule (échelle 1-10)                    |
+| `km_actuel`                      | float | Kilometrage actuel du vehicule                     |
+| `km_moyen_annuel`                | float | Kilometrage moyen annuel                           |
+| `km_derniere_revision`           | float | Kilometrage lors de la derniere revision           |
+| `jours_depuis_derniere_revision` | int   | Nombre de jours depuis la derniere revision        |
+| `km_depuis_derniere_revision`    | float | Kilometres parcourus depuis la derniere revision   |
+| `nb_revisions_effectuees`        | int   | Nombre total de revisions effectuees               |
+| `intervalle_recommande_jours`    | int   | Intervalle recommande en jours par le constructeur |
+| `intervalle_recommande_km`       | float | Intervalle recommande en km par le constructeur    |
+| `condition_vehicule`             | int   | Etat du vehicule (echelle 1-10)                    |
 | `nb_pannes_historique`           | int   | Nombre de pannes dans l'historique                 |
-| `age_vehicule`                   | int   | Âge du véhicule en années                          |
-| `taux_utilisation_km`            | float | Taux d'utilisation basé sur les km                 |
-| `taux_utilisation_jours`         | float | Taux d'utilisation basé sur les jours              |
-| `revisions_par_an`               | float | Nombre moyen de révisions par an                   |
-| `Carburant_Factor`               | float | Facteur lié au type de carburant                   |
-| `Usage_Factor`                   | float | Facteur lié au type d'usage                        |
+| `age_vehicule`                   | int   | Age du vehicule en annees                          |
+| `taux_utilisation_km`            | float | Taux d'utilisation base sur les km                 |
+| `taux_utilisation_jours`         | float | Taux d'utilisation base sur les jours              |
+| `revisions_par_an`               | float | Nombre moyen de revisions par an                   |
+| `Carburant_Factor`               | float | Facteur carburant (Essence=1.0, Diesel=1.1, Hybride=1.2, Electrique=1.5) |
+| `Usage_Factor`                   | float | Facteur usage (Flotte=0.8, Professionnel=0.9, Personnel=1.2) |
+
+## Categories de recommandations
+
+| Estimation       | Recommandation                            |
+| ---------------- | ----------------------------------------- |
+| < 60 jours       | Maintenance tres urgente (< 2 mois)      |
+| 60 - 150 jours   | Planifier dans 2 a 5 mois                |
+| 150 - 270 jours  | Planifier dans 5 a 9 mois                |
+| > 270 jours      | Pas urgent (> 9 mois)                    |
 
 ## Structure du projet
 
 ```
 ia_cmv/
-├── main.py                        # Application FastAPI principale
-├── model_multiple2.pkl            # Modèle ML entraîné
-├── Regression_Lineaire.ipynb      # Notebook Colab d'entraînement du modèle
-├── dataset_vehicules_5000.csv     # Dataset d'entraînement (5000 véhicules)
-├── requirements.txt               # Dépendances Python
-├── Dockerfile                     # Configuration Docker
-├── .dockerignore                  # Fichiers à exclure du build Docker
-├── data_test.json                 # Données de test exemple
+├── app/
+│   ├── main.py                    # Application FastAPI
+│   └── test_main.py               # Tests (pytest)
+├── notebook/
+│   └── Regression_Lineaire.ipynb  # Entrainement + enregistrement MLflow
+├── dataset_vehicules_5000.csv     # Dataset (5000 vehicules)
+├── data_test.json                 # Donnees de test exemple
+├── requirements.txt               # Dependances Python
+├── Dockerfile                     # Image Docker de l'API
+├── Dockerfile.mlflow              # Image Docker du serveur MLflow
+├── docker-compose.yml             # Orchestration API + MLflow
+├── .dockerignore                  # Fichiers exclus du build Docker
+├── .gitignore                     # Fichiers exclus de git
 └── README.md                      # Documentation
 ```
 
-## Modèle de Machine Learning
+## Deploiement sur un VPS
 
-### Entraînement du modèle
+### Prerequis sur le serveur
 
-Le modèle a été entraîné dans le notebook [Regression_Lineaire.ipynb](Regression_Lineaire.ipynb) disponible dans le projet. Ce notebook peut être exécuté sur Google Colab pour:
+- Un VPS avec Docker et Docker Compose installes
+- Un nom de domaine pointant vers l'IP du VPS (pour HTTPS)
 
-- Explorer le dataset de 5000 véhicules
-- Analyser les corrélations entre les features
-- Entraîner différents modèles de régression
-- Évaluer les performances (RMSE, R², MAE)
-- Générer le fichier `model_multiple2.pkl`
+### 1. Deployer le projet
 
-### Dataset
+```bash
+# Cloner le depot
+git clone https://github.com/slayercode1/ia_cmv.git
+cd ia_cmv
 
-Le fichier [dataset_vehicules_5000.csv](dataset_vehicules_5000.csv) contient 5000 enregistrements de véhicules avec:
+# Lancer les conteneurs en arriere-plan
+docker compose up --build -d
+```
 
-- Données de kilométrage et d'utilisation
-- Historique des révisions
-- Informations sur l'état du véhicule
-- Type de carburant et d'usage
-- Jours avant la prochaine maintenance (variable cible)
+L'API tourne maintenant sur le port 8000 et MLflow sur le port 5000.
 
-### Modèle sauvegardé
+### 2. Entrainer et charger le modele
 
-Le modèle est sauvegardé dans [model_multiple2.pkl](model_multiple2.pkl) et contient:
+Depuis votre machine locale (avec le notebook Jupyter) :
 
-- Le modèle de régression linéaire multiple entraîné
-- Le scaler StandardScaler pour la normalisation des features
-- Le RMSE (Root Mean Square Error) pour calculer l'intervalle de confiance
+```bash
+# Le notebook doit pointer vers le MLflow du VPS
+export MLFLOW_TRACKING_URI=http://votre-ip:5000
+```
 
-## Catégories de recommandations
+Modifier la variable `MLFLOW_TRACKING_URI` dans la premiere cellule du notebook :
 
-- **< 60 jours**: Maintenance très urgente (< 2 mois)
-- **60-150 jours**: Maintenance à planifier dans 2-5 mois
-- **150-270 jours**: Maintenance à planifier dans 5-9 mois
-- **> 270 jours**: Maintenance non urgente (> 9 mois)
+```python
+MLFLOW_TRACKING_URI = "http://votre-ip:5000"
+```
 
-## Dépendances
+Puis executer le notebook. Une fois termine, recharger le modele dans l'API :
+
+```bash
+curl -X POST http://votre-ip:8000/reload-model
+```
+
+### 3. Configurer Caddy (HTTPS automatique)
+
+Caddy gere automatiquement les certificats SSL via Let's Encrypt.
+
+Installer Caddy :
+
+```bash
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install -y caddy
+```
+
+Editer le fichier `/etc/caddy/Caddyfile` :
+
+```
+api.votre-domaine.com {
+    reverse_proxy 127.0.0.1:8000
+}
+```
+
+Relancer Caddy :
+
+```bash
+sudo systemctl reload caddy
+```
+
+L'API est maintenant accessible en HTTPS sur `https://api.votre-domaine.com/docs`. Le certificat SSL est obtenu et renouvele automatiquement.
+
+### 4. Securiser les ports
+
+Par defaut, MLflow (port 5000) et l'API (port 8000) sont exposes publiquement. En production, modifier le `docker-compose.yml` pour les restreindre en local :
+
+```yaml
+mlflow:
+  ports:
+    - "127.0.0.1:5000:5000"  # Accessible uniquement en local
+
+api:
+  ports:
+    - "127.0.0.1:8000:8000"  # L'API passe par Caddy
+```
+
+### 5. Redemarrage automatique
+
+Docker Compose relance automatiquement les conteneurs au reboot si vous ajoutez une politique de restart :
+
+```yaml
+services:
+  mlflow:
+    restart: unless-stopped
+    # ...
+  api:
+    restart: unless-stopped
+    # ...
+```
+
+### 6. Mettre a jour l'application
+
+```bash
+cd ia_cmv
+git pull
+docker compose up --build -d
+curl -X POST http://localhost:8000/reload-model
+```
+
+## Lancer les tests
+
+```bash
+cd app
+python -m pytest test_main.py -v
+```
+
+## Dependances
 
 - FastAPI 0.124.2
 - Uvicorn 0.38.0
 - Pydantic 2.10.6
 - scikit-learn 1.6.1
+- XGBoost 3.1.2
 - numpy 2.3.5
+- MLflow 2.21.3
+- pytest 9.0.2
 
 ## Auteur
 
