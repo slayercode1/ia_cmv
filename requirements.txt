@@ -23,3 +23,5 @@ matplotlib==3.10.0
 seaborn==0.13.2
 # Framework de tests (pas nécessaire en production)
 pytest==9.0.2
+# Client HTTP requis par FastAPI TestClient
+httpx==0.28.1
