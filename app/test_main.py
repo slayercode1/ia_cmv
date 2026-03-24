@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 
 # Mocker le modèle avant d'importer l'application
 # On crée un faux pipeline qui retourne toujours 150 jours
-import main
+import app.main as main
 
 mock_pipeline = MagicMock()
 mock_pipeline.predict.return_value = np.array([150.0])
