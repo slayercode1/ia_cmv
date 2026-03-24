@@ -1,0 +1,42 @@
+services:
+  # --- Serveur MLflow ---
+  mlflow:
+    image: ghcr.io/slayercode1/ia_cmv-mlflow:latest
+    container_name: ia-cmv-mlflow
+    restart: unless-stopped
+    volumes:
+      - mlflow_data:/mlflow
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - caddy-net
+      - internal
+
+  # --- API FastAPI ---
+  api:
+    image: ghcr.io/slayercode1/ia_cmv-api:latest
+    container_name: ia-cmv-api
+    restart: unless-stopped
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MODEL_NAME=maintenance_vehicules
+      - MODEL_ALIAS=champion
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    networks:
+      - caddy-net
+      - internal
+
+volumes:
+  mlflow_data:
+
+networks:
+  caddy-net:
+    external: true
+  internal:
+    driver: bridge
